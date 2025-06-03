@@ -12,36 +12,72 @@ export const ExportTools: React.FC<ExportToolsProps> = ({ canvasRef }) => {
   const { toast } = useToast();
 
   const downloadImage = () => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const link = document.createElement('a');
-    link.download = `cursed-meme-${Date.now()}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-
-    toast({
-      title: "MEME EXTRACTED",
-      description: "Your cursed creation has been downloaded!",
-    });
-  };
-
-  const copyToClipboard = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {
+      toast({
+        title: "ERROR",
+        description: "No image to download!",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const canvas = canvasRef.current;
+      const link = document.createElement('a');
+      link.download = `cursed-meme-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "MEME EXTRACTED",
+        description: "Your cursed creation has been downloaded!",
+      });
+    } catch (error) {
+      toast({
+        title: "DOWNLOAD FAILED",
+        description: "The darkness consumed your meme...",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copyToClipboard = async () => {
+    if (!canvasRef.current) {
+      toast({
+        title: "ERROR",
+        description: "No image to copy!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const canvas = canvasRef.current;
+      
+      // Convert canvas to blob
       canvas.toBlob(async (blob) => {
         if (blob) {
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          toast({
-            title: "COPIED TO CLIPBOARD",
-            description: "The cursed meme is ready to spread!",
-          });
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            toast({
+              title: "COPIED TO CLIPBOARD",
+              description: "The cursed meme is ready to spread!",
+            });
+          } catch (clipboardError) {
+            // Fallback: copy as data URL to clipboard
+            const dataUrl = canvas.toDataURL('image/png');
+            await navigator.clipboard.writeText(dataUrl);
+            toast({
+              title: "COPIED AS DATA URL",
+              description: "Image data copied to clipboard!",
+            });
+          }
         }
-      });
+      }, 'image/png', 1.0);
     } catch (error) {
       toast({
         title: "COPY FAILED",
@@ -52,9 +88,24 @@ export const ExportTools: React.FC<ExportToolsProps> = ({ canvasRef }) => {
   };
 
   const shareOnReddit = () => {
-    const text = "Check out this cursed meme I made!";
-    const url = `https://reddit.com/submit?title=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    const text = "Check out this cursed meme I made with the Cursed Meme Lab!";
+    const url = `https://www.reddit.com/submit?title=${encodeURIComponent(text)}`;
+    
+    // Open Reddit in a new tab
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    
+    if (newWindow) {
+      toast({
+        title: "REDDIT PORTAL OPENED",
+        description: "Share your cursed creation with the world!",
+      });
+    } else {
+      toast({
+        title: "REDDIT BLOCKED",
+        description: "Please allow popups to share on Reddit",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

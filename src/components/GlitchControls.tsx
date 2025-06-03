@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 
 interface GlitchSettings {
   rgbChaos: number;
@@ -24,11 +25,11 @@ export const GlitchControls: React.FC<GlitchControlsProps> = ({ settings, onSett
   };
 
   const glitchControls = [
-    { key: 'rgbChaos', label: 'RGB CHAOS', color: 'red', description: 'Unleash the RGB demons' },
-    { key: 'scanlines', label: 'SCANLINE CORRUPTION', color: 'green', description: 'CRT screen death' },
-    { key: 'vhsCorruption', label: 'BROKEN VHS', color: 'blue', description: 'Analog nightmare' },
-    { key: 'jpegCrunch', label: 'MEME ROT', color: 'yellow', description: 'Compression hell' },
-    { key: 'saturation', label: 'OOZE SATURATION', color: 'purple', description: 'Color overdose' }
+    { key: 'rgbChaos', label: 'RGB CHAOS', color: 'red', description: 'RGB channel shifting and distortion' },
+    { key: 'scanlines', label: 'SCANLINE CORRUPTION', color: 'green', description: 'CRT monitor scanline effect' },
+    { key: 'vhsCorruption', label: 'BROKEN VHS', color: 'blue', description: 'VHS tape distortion and noise' },
+    { key: 'jpegCrunch', label: 'MEME ROT', color: 'yellow', description: 'JPEG compression artifacts' },
+    { key: 'saturation', label: 'OOZE SATURATION', color: 'purple', description: 'Color intensity overdrive' }
   ];
 
   const randomizeAll = () => {
@@ -47,25 +48,55 @@ export const GlitchControls: React.FC<GlitchControlsProps> = ({ settings, onSett
     onSettingsChange(resetSettings);
   };
 
+  const applyPreset = (preset: string) => {
+    const presets = {
+      mild: { rgbChaos: 20, scanlines: 15, vhsCorruption: 10, jpegCrunch: 25, saturation: 30 },
+      intense: { rgbChaos: 60, scanlines: 45, vhsCorruption: 55, jpegCrunch: 70, saturation: 80 },
+      nightmare: { rgbChaos: 90, scanlines: 85, vhsCorruption: 95, jpegCrunch: 100, saturation: 100 }
+    };
+    onSettingsChange(presets[preset as keyof typeof presets]);
+  };
+
   return (
     <div className="bg-gray-900 border-2 border-purple-500 rounded-lg p-6 transition-all duration-300 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-400/20">
       <h2 className="text-2xl font-bold text-purple-400 mb-4 font-mono tracking-wider">
         GLITCH LABORATORY
       </h2>
       
-      <div className="flex gap-2 mb-6">
-        <button
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <Button
           onClick={randomizeAll}
-          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-mono text-sm py-2 px-3 rounded border-2 border-red-500 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/50"
+          className="bg-red-600 hover:bg-red-700 text-white font-mono text-sm py-2 px-3 rounded border-2 border-red-500 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/50"
         >
-          RANDOMIZE CHAOS
-        </button>
-        <button
+          RANDOMIZE
+        </Button>
+        <Button
           onClick={resetAll}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-mono text-sm py-2 px-3 rounded border-2 border-gray-600 transition-all duration-300"
+          className="bg-gray-700 hover:bg-gray-600 text-white font-mono text-sm py-2 px-3 rounded border-2 border-gray-600 transition-all duration-300"
         >
-          RESET SANITY
-        </button>
+          RESET
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        <Button
+          onClick={() => applyPreset('mild')}
+          className="bg-green-600 hover:bg-green-700 text-white font-mono text-xs py-1 px-2 rounded border border-green-500"
+        >
+          MILD
+        </Button>
+        <Button
+          onClick={() => applyPreset('intense')}
+          className="bg-orange-600 hover:bg-orange-700 text-white font-mono text-xs py-1 px-2 rounded border border-orange-500"
+        >
+          INTENSE
+        </Button>
+        <Button
+          onClick={() => applyPreset('nightmare')}
+          className="bg-red-800 hover:bg-red-900 text-white font-mono text-xs py-1 px-2 rounded border border-red-700"
+        >
+          NIGHTMARE
+        </Button>
       </div>
 
       <div className="space-y-6">

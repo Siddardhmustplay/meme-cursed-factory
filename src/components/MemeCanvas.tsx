@@ -76,27 +76,85 @@ export const MemeCanvas = forwardRef<HTMLCanvasElement, MemeCanvasProps>(
     }, [image, topCaption, bottomCaption, glitchSettings]);
 
     const applyGlitchEffects = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, settings: GlitchSettings) => {
+      // RGB Chaos effect
       if (settings.rgbChaos > 0) {
-        // Simple RGB shift effect
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const shift = Math.floor(settings.rgbChaos / 10);
+        const intensity = settings.rgbChaos / 100;
         
         for (let i = 0; i < data.length; i += 4) {
-          if (Math.random() < settings.rgbChaos / 100) {
+          if (Math.random() < intensity * 0.3) {
+            // RGB shift
+            const shift = Math.floor(intensity * 20);
             data[i] = Math.min(255, data[i] + shift); // Red
-            data[i + 2] = Math.min(255, data[i + 2] + shift); // Blue
+            data[i + 2] = Math.max(0, data[i + 2] - shift); // Blue
           }
         }
         ctx.putImageData(imageData, 0, 0);
       }
 
+      // Scanlines effect
       if (settings.scanlines > 0) {
-        // Draw scanlines
-        ctx.fillStyle = `rgba(0, 0, 0, ${settings.scanlines / 200})`;
-        for (let y = 0; y < canvas.height; y += 4) {
-          ctx.fillRect(0, y, canvas.width, 2);
+        ctx.fillStyle = `rgba(0, 0, 0, ${settings.scanlines / 300})`;
+        const lineSpacing = Math.max(2, 6 - Math.floor(settings.scanlines / 25));
+        for (let y = 0; y < canvas.height; y += lineSpacing) {
+          ctx.fillRect(0, y, canvas.width, 1);
         }
+      }
+
+      // VHS Corruption effect
+      if (settings.vhsCorruption > 0) {
+        const intensity = settings.vhsCorruption / 100;
+        for (let i = 0; i < intensity * 10; i++) {
+          const y = Math.random() * canvas.height;
+          const height = Math.random() * 20 + 5;
+          const shift = (Math.random() - 0.5) * intensity * 40;
+          
+          const imageData = ctx.getImageData(0, y, canvas.width, height);
+          ctx.putImageData(imageData, shift, y);
+        }
+      }
+
+      // JPEG Crunch effect (pixelation)
+      if (settings.jpegCrunch > 0) {
+        const quality = Math.max(0.1, 1 - (settings.jpegCrunch / 150));
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d')!;
+        
+        const scaledWidth = Math.max(50, canvas.width * quality);
+        const scaledHeight = Math.max(50, canvas.height * quality);
+        
+        tempCanvas.width = scaledWidth;
+        tempCanvas.height = scaledHeight;
+        
+        tempCtx.putImageData(
+          ctx.getImageData(0, 0, canvas.width, canvas.height),
+          0, 0
+        );
+        
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Saturation effect
+      if (settings.saturation > 0) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const factor = 1 + (settings.saturation / 50);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          
+          data[i] = Math.min(255, gray + (r - gray) * factor);
+          data[i + 1] = Math.min(255, gray + (g - gray) * factor);
+          data[i + 2] = Math.min(255, gray + (b - gray) * factor);
+        }
+        ctx.putImageData(imageData, 0, 0);
       }
     };
 

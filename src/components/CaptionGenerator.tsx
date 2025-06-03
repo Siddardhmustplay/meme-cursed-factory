@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { generateCursedCaption } from '../services/chatgpt';
 
 interface CaptionGeneratorProps {
   onTopCaptionChange: (caption: string) => void;
@@ -17,6 +20,9 @@ export const CaptionGenerator: React.FC<CaptionGeneratorProps> = ({
   bottomCaption
 }) => {
   const [selectedMode, setSelectedMode] = useState('delusional');
+  const [apiKey, setApiKey] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
   const modes = [
     { id: 'delusional', name: 'DELUSIONAL AI', color: 'red' },
@@ -24,30 +30,27 @@ export const CaptionGenerator: React.FC<CaptionGeneratorProps> = ({
     { id: 'boomer', name: 'BOOMERCORE', color: 'yellow' }
   ];
 
-  const generateCursedCaptions = () => {
-    const cursedTopCaptions = [
-      "WHEN THE VOID STARES BACK",
-      "REALITY.EXE HAS STOPPED WORKING",
-      "POV: YOU'RE THE PROBLEM",
-      "ENTER THE BRAIN ROT DIMENSION",
-      "SOCIETY IF...",
-      "NOBODY: ABSOLUTELY NOBODY:"
-    ];
-
-    const cursedBottomCaptions = [
-      "AND THAT'S ON PERIOD",
-      "BOTTOM TEXT",
-      "THIS IS FINE",
-      "WE LIVE IN A SOCIETY",
-      "IT BE LIKE THAT SOMETIMES",
-      "REJECT HUMANITY, RETURN TO MONKE"
-    ];
-
-    const randomTop = cursedTopCaptions[Math.floor(Math.random() * cursedTopCaptions.length)];
-    const randomBottom = cursedBottomCaptions[Math.floor(Math.random() * cursedBottomCaptions.length)];
-
-    onTopCaptionChange(randomTop);
-    onBottomCaptionChange(randomBottom);
+  const generateCursedCaptions = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const result = await generateCursedCaption(selectedMode, apiKey);
+      onTopCaptionChange(result.top);
+      onBottomCaptionChange(result.bottom);
+      
+      toast({
+        title: "CAPTIONS GENERATED",
+        description: `${selectedMode.toUpperCase()} mode activated!`,
+      });
+    } catch (error) {
+      toast({
+        title: "GENERATION FAILED",
+        description: "The AI gods have forsaken us...",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -56,6 +59,17 @@ export const CaptionGenerator: React.FC<CaptionGeneratorProps> = ({
         CAPTION GENERATOR
       </h2>
 
+      <div className="mb-4">
+        <label className="block text-sm font-mono text-green-400 mb-2">OpenAI API Key</label>
+        <Input
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          className="bg-black border-2 border-green-500 text-green-400 font-mono"
+          placeholder="sk-..."
+        />
+      </div>
+
       <div className="grid grid-cols-3 gap-2 mb-4">
         {modes.map((mode) => (
           <Button
@@ -63,7 +77,7 @@ export const CaptionGenerator: React.FC<CaptionGeneratorProps> = ({
             onClick={() => setSelectedMode(mode.id)}
             className={`font-mono text-xs py-2 px-3 border-2 transition-all duration-300 ${
               selectedMode === mode.id
-                ? `bg-${mode.color}-600 border-${mode.color}-500 text-white`
+                ? `bg-${mode.color}-600 border-${mode.color}-500 text-white shadow-lg shadow-${mode.color}-500/50`
                 : `bg-gray-800 border-${mode.color}-500 text-${mode.color}-400 hover:bg-${mode.color}-600/20`
             }`}
           >
@@ -74,9 +88,10 @@ export const CaptionGenerator: React.FC<CaptionGeneratorProps> = ({
 
       <Button
         onClick={generateCursedCaptions}
-        className="w-full mb-4 bg-red-600 hover:bg-red-700 text-white font-mono border-2 border-red-500 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/50"
+        disabled={isGenerating}
+        className="w-full mb-4 bg-red-600 hover:bg-red-700 text-white font-mono border-2 border-red-500 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/50 disabled:opacity-50"
       >
-        GENERATE CURSED CAPTIONS
+        {isGenerating ? 'GENERATING...' : 'GENERATE CURSED CAPTIONS'}
       </Button>
 
       <div className="space-y-4">
