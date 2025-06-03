@@ -20,7 +20,7 @@ export const MemeCanvas = forwardRef<HTMLCanvasElement, MemeCanvasProps>(
   ({ image, topCaption, bottomCaption, glitchSettings }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    useImperativeHandle(ref, () => canvasRef.current!, []);
+    useImperativeHandle(ref, () => canvasRef.current!);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -29,18 +29,32 @@ export const MemeCanvas = forwardRef<HTMLCanvasElement, MemeCanvasProps>(
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      canvas.width = 500;
-      canvas.height = 500;
+      // Set canvas size
+      canvas.width = 800;
+      canvas.height = 600;
 
       // Clear canvas
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (image) {
         const img = new Image();
         img.onload = () => {
+          // Calculate dimensions to fit image while maintaining aspect ratio
+          const aspectRatio = img.width / img.height;
+          let drawWidth = canvas.width;
+          let drawHeight = canvas.width / aspectRatio;
+
+          if (drawHeight > canvas.height) {
+            drawHeight = canvas.height;
+            drawWidth = canvas.height * aspectRatio;
+          }
+
+          const x = (canvas.width - drawWidth) / 2;
+          const y = (canvas.height - drawHeight) / 2;
+
           // Draw image
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
           // Apply glitch effects
           applyGlitchEffects(ctx, canvas, glitchSettings);
@@ -51,111 +65,74 @@ export const MemeCanvas = forwardRef<HTMLCanvasElement, MemeCanvasProps>(
         img.src = image;
       } else {
         // Draw placeholder
-        drawPlaceholder(ctx, canvas);
-        drawCaptions(ctx, canvas, topCaption, bottomCaption);
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(100, 150, canvas.width - 200, canvas.height - 300);
+        
+        ctx.fillStyle = '#666666';
+        ctx.font = '24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('UPLOAD IMAGE TO BEGIN CORRUPTION', canvas.width / 2, canvas.height / 2);
       }
     }, [image, topCaption, bottomCaption, glitchSettings]);
 
     const applyGlitchEffects = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, settings: GlitchSettings) => {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // RGB Chaos
       if (settings.rgbChaos > 0) {
+        // Simple RGB shift effect
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const shift = Math.floor(settings.rgbChaos / 10);
+        
         for (let i = 0; i < data.length; i += 4) {
-          const intensity = settings.rgbChaos / 100;
-          data[i] += Math.random() * 50 * intensity; // Red
-          data[i + 1] += Math.random() * 50 * intensity; // Green
-          data[i + 2] += Math.random() * 50 * intensity; // Blue
+          if (Math.random() < settings.rgbChaos / 100) {
+            data[i] = Math.min(255, data[i] + shift); // Red
+            data[i + 2] = Math.min(255, data[i + 2] + shift); // Blue
+          }
         }
+        ctx.putImageData(imageData, 0, 0);
       }
 
-      // Saturation
-      if (settings.saturation > 0) {
-        for (let i = 0; i < data.length; i += 4) {
-          const intensity = settings.saturation / 100;
-          data[i] = Math.min(255, data[i] * (1 + intensity)); // Red
-          data[i + 1] = Math.min(255, data[i + 1] * (1 + intensity)); // Green
-          data[i + 2] = Math.min(255, data[i + 2] * (1 + intensity)); // Blue
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-
-      // Scanlines
       if (settings.scanlines > 0) {
-        ctx.globalAlpha = settings.scanlines / 200;
-        ctx.fillStyle = 'black';
-        for (let i = 0; i < canvas.height; i += 4) {
-          ctx.fillRect(0, i, canvas.width, 2);
-        }
-        ctx.globalAlpha = 1;
-      }
-
-      // VHS Corruption (horizontal lines)
-      if (settings.vhsCorruption > 0) {
-        const lines = Math.floor(settings.vhsCorruption / 10);
-        for (let i = 0; i < lines; i++) {
-          const y = Math.random() * canvas.height;
-          const sourceData = ctx.getImageData(0, y, canvas.width, 1);
-          const offset = (Math.random() - 0.5) * 20;
-          ctx.putImageData(sourceData, offset, y);
+        // Draw scanlines
+        ctx.fillStyle = `rgba(0, 0, 0, ${settings.scanlines / 200})`;
+        for (let y = 0; y < canvas.height; y += 4) {
+          ctx.fillRect(0, y, canvas.width, 2);
         }
       }
-    };
-
-    const drawPlaceholder = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-      // Dark gradient background
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#1a1a1a');
-      gradient.addColorStop(1, '#000000');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Placeholder text
-      ctx.fillStyle = '#ff0000';
-      ctx.font = 'bold 24px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('UPLOAD IMAGE TO BEGIN', canvas.width / 2, canvas.height / 2);
-      ctx.fillText('THE RITUAL', canvas.width / 2, canvas.height / 2 + 30);
     };
 
     const drawCaptions = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, top: string, bottom: string) => {
       ctx.textAlign = 'center';
-      
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 8;
+
       // Top caption
       if (top) {
-        drawOutlinedText(ctx, top, canvas.width / 2, 50, '32px');
+        ctx.font = 'bold 48px Impact, Arial Black';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeText(top, canvas.width / 2, 80);
+        ctx.fillText(top, canvas.width / 2, 80);
       }
 
       // Bottom caption
       if (bottom) {
-        drawOutlinedText(ctx, bottom, canvas.width / 2, canvas.height - 30, '32px');
+        ctx.font = 'bold 48px Impact, Arial Black';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeText(bottom, canvas.width / 2, canvas.height - 40);
+        ctx.fillText(bottom, canvas.width / 2, canvas.height - 40);
       }
     };
 
-    const drawOutlinedText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fontSize: string) => {
-      ctx.font = `bold ${fontSize} Impact, Arial Black, sans-serif`;
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'white';
-      
-      // Draw outline
-      ctx.strokeText(text, x, y);
-      // Draw fill
-      ctx.fillText(text, x, y);
-    };
-
     return (
-      <div className="bg-gray-900 border-2 border-yellow-500 rounded-lg p-6 transition-all duration-300 hover:border-green-400 hover:shadow-lg hover:shadow-green-400/20">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-4 font-mono tracking-wider">
-          CURSED CANVAS
+      <div className="bg-gray-900 border-2 border-green-500 rounded-lg p-6 transition-all duration-300 hover:border-red-400 hover:shadow-lg hover:shadow-red-400/20">
+        <h2 className="text-2xl font-bold text-green-400 mb-4 font-mono tracking-wider">
+          MEME CONSTRUCTION ZONE
         </h2>
-        <div className="flex justify-center">
+        
+        <div className="border-4 border-red-500 rounded-lg overflow-hidden">
           <canvas
             ref={canvasRef}
-            className="border-2 border-gray-600 rounded max-w-full h-auto bg-black"
-            style={{ filter: 'contrast(1.1) brightness(1.1)' }}
+            className="w-full h-auto bg-black"
+            style={{ maxHeight: '500px' }}
           />
         </div>
       </div>
